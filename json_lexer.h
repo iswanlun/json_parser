@@ -1,10 +1,12 @@
 #ifndef JSON_LEXER_H
 #define JSON_LEXER_H
 
+#include <stdio.h>
+
 typedef enum lexeme_type {
     string_t,   number,     object,
     array,      true,       false,
-    null
+    null, op
 } lexeme_type;
 
 typedef struct lexeme {
@@ -19,7 +21,7 @@ typedef struct lexeme {
 
 } lexeme;
 
-int lex_json( lexeme* head, char* string );
+int lex_json( lexeme* head, FILE* fp );
 
 int disose( lexeme* head );
 

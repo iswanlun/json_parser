@@ -1,122 +1,112 @@
-#include <stdio.h>
-#include <string.h>
 #include "json_lexer.h"
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
 
-char* src;
+FILE* json;
 lexeme* curr;
 
-void construct() {
-    curr -> next = (lexeme*) malloc(sizeof(lexeme));
-    curr = curr -> next;
-}
+int lex ();
 
-int lex_object() {
-    
-    curr -> type = object;
+int lex_collection() {
+
     lexeme* tmp = curr;
-    construct();
-    src++;
-
     tmp -> set_size = lex();
-    return 1 + lex();
-}
-
-int lex_array() {
-
-    curr -> type = object;
-    lexeme* tmp = curr;
-    construct();
-    src++;
-
-    tmp -> set_size = lex();
+    // fold(tmp);
     return 1 + lex();
 }
 
 int lex_string() {
 
-    char* i = ++src; 
+    int size = 0, len = 0;
+    char* str = NULL;
+    char c = (char) fgetc(json);
 
     escape:
-    while ( *src != '"' ) {
-        src++;
+    while ( (c = (char) fgetc(json)) != '"' && c != EOF ) {
+        if ( len + 1 >= size ) {
+            size = (size * 2) + 1;
+            str = realloc(str, sizeof(char) * size);
+        }
+        str[len++] = c;
     }
-    if ( *(src-1) == '\\' ) {
-        src++;
+    if ( str[len] == '\\' && c != EOF ) {
         goto escape;
     }
+    str[len] = '\0';
 
-    int size = src - i;
     curr -> type = string_t;
-    curr -> value = (char*) malloc( (size + 1) * sizeof(char) );
-    strncpy( curr -> value, i, size );
-    ((char*) curr -> value)[size] = '\0';
-    construct();
-    src++;
+    curr -> value = str;
+    curr -> set_size = len;
 
     return 1 + lex();
 }
 
 int lex_colen() {
-
-    ++src;
+    curr -> type = op;
     return lex() - 1;
 } 
 
-int lex_number() {
+int lex_number( char c ) {
 
     curr -> type = number;
     curr -> value = (double*) malloc(sizeof(double));
     double n = 0.0, p = 1.0;
 
-    while ( isdigit(*src) ) {
+    while ( isdigit(c) ) {
 
-        n = (n * 10.0) + ( (int) (*src - '0') );
-        src++;
+        n = (n * 10.0) + ( (int) (c - '0') );
+        c = (char) fgetc(json);
     }
     
-    if ( *src == '.' ) { src++; }
+    if ( c == '.' ) { c = (char) fgetc(json); }
 
-    while ( isdigit(*src) ) {
+    while ( isdigit(c) ) {
 
-        n = (n * 10.0) + ( (int) (*src - '0') );
+        n = (n * 10.0) + ( (int) (c - '0') );
         p *= 10.0;
-        src++;
+        c = (char) fgetc(json);
     }
 
     *((double*) curr -> value) = n / p;
-    construct();
+
     return 1 + lex();
 }
 
-int lex_phrase() {
+int lex_phrase( char c ) {
 
-    if ( !strncmp(src, "true", 4) ) {
+    if ( c == 't' ) {
         curr -> type = true;
-        src += 4;
 
-    } else if ( !strncmp(src, "false", 5) ) {
+    } else if ( c == 'f' ) {
         curr -> type = false;
-        src += 5;
 
     } else {
         curr -> type = null;
-        while ( *src >= 'a' && *src <= 'z' ) { src++; }
     }
 
-    construct();
+    while ( c >= 'a' && c <= 'z' ) { c = (char) fgetc(json); }
+
     return 1 + lex();
 }
 
 int lex () {
 
-    while ( isspace(*src) || *src == ',' ) { ++src; }
+    curr -> next = (lexeme*) malloc(sizeof(lexeme));
+    curr = curr -> next;
 
-    switch ( *src ) {
+    char c = (char) fgetc(json);
+
+    while ( isspace(c) || c == ',' ) { c = (char) fgetc(json); }
+
+    switch ( c ) {
         case '{':
-            return lex_object();
+            curr -> type = object;
+            return lex_collection();
         
         case '[':
-            return lex_array();
+            curr -> type = array;
+            return lex_collection();
 
         case '}':
         case ']':
@@ -130,32 +120,18 @@ int lex () {
             return lex_colen();
 
         default:
-            if ( isdigit(*src) ) {
-                return lex_number();
+            if ( isdigit(c) ) {
+                return lex_number( c );
             } else {
-                return lex_phrase();
+                return lex_phrase( c );
             }
         break;
     }
 }
 
-int lex_json( lexeme* head, char* str ) {
+int lex_json( lexeme* head, FILE* fp ) {
     curr = head;
-    src = str;
+    json = fp;
     lex();
-    return 0;
-}
-
-int dispose( lexeme* head ) {
-    
-    lexeme* tmp;
-    while ( head != NULL) {
-        if ( head -> value != NULL ) {
-            free( head -> value );
-        }
-        tmp = head -> next;
-        free(head);
-        head = tmp;
-    }
     return 0;
 }
