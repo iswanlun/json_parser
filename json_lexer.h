@@ -6,7 +6,7 @@
 typedef enum lexeme_type {
     string_t,   number,     object,
     array,      true,       false,
-    null, op
+    null,       op,         end
 } lexeme_type;
 
 typedef struct lexeme {
@@ -16,6 +16,7 @@ typedef struct lexeme {
     int set_size;
 
     void* value;
+    void** set;
 
     struct lexeme* next;
 

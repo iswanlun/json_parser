@@ -8,6 +8,22 @@ lexeme* curr;
 
 int lex ();
 
+int fold( lexeme* ptr ) {
+
+    ptr -> set = malloc( ptr -> set_size * sizeof(lexeme*));
+    lexeme* tmp = ptr -> next;
+
+    if ( ptr -> type == array ) {
+        for ( int i = 0; i < ptr -> set_size; ++i ) {
+            ptr -> set[i] = tmp;
+            tmp = tmp -> next;
+        }
+    } else {
+        
+    }
+
+}
+
 int lex_collection() {
 
     lexeme* tmp = curr;
@@ -20,7 +36,7 @@ int lex_string() {
 
     int size = 0, len = 0;
     char* str = NULL;
-    char c = (char) fgetc(json);
+    char c;
 
     escape:
     while ( (c = (char) fgetc(json)) != '"' && c != EOF ) {
@@ -30,10 +46,13 @@ int lex_string() {
         }
         str[len++] = c;
     }
-    if ( str[len] == '\\' && c != EOF ) {
-        goto escape;
+    if ( len ) {
+        if ( str[len-1] == '\\' && c != EOF ) {
+            str[len++] = c;
+            goto escape;
+        }
+        str[len] = '\0';
     }
-    str[len] = '\0';
 
     curr -> type = string_t;
     curr -> value = str;
@@ -50,7 +69,7 @@ int lex_colen() {
 int lex_number( char c ) {
 
     curr -> type = number;
-    curr -> value = (double*) malloc(sizeof(double));
+    double* result = (double*) malloc(sizeof(double));
     double n = 0.0, p = 1.0;
 
     while ( isdigit(c) ) {
@@ -68,7 +87,8 @@ int lex_number( char c ) {
         c = (char) fgetc(json);
     }
 
-    *((double*) curr -> value) = n / p;
+    *result = n / p;
+    curr -> value = result;
 
     return 1 + lex();
 }
@@ -111,6 +131,7 @@ int lex () {
         case '}':
         case ']':
         case EOF:
+            curr -> type = end;
             return 0;
 
         case '"':
@@ -132,6 +153,5 @@ int lex () {
 int lex_json( lexeme* head, FILE* fp ) {
     curr = head;
     json = fp;
-    lex();
-    return 0;
+    return lex();
 }

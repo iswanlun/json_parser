@@ -7,13 +7,13 @@ void print_lexemes( lexeme* head ) {
     char* enum_names[] = {
         "string_t", "number", "object", 
         "array", "true", "false", "null", 
-        "op"
+        "op", "end"
     };
 
     lexeme* tmp = head;
 
     while ( head != NULL ) {
-        printf(" %s ", enum_names[head -> type]);
+        printf(" %s \t\t", enum_names[head -> type]);
 
         switch (head -> type) {
             case string_t :
@@ -21,14 +21,14 @@ void print_lexemes( lexeme* head ) {
                 free(head -> value);
                 break;
             case number :
-                printf("%d", ((double*) head -> value));
+                printf("%f", *((double*) head -> value));
                 free(head -> value);
                 break;
             case object :
-                printf("{ ");
+                printf("{ size : %d", head -> set_size );
                 break;
             case array :
-                printf("[ ");
+                printf("[ size : %d", head -> set_size );
                 break;
             case true :
                 printf("true");
@@ -41,6 +41,9 @@ void print_lexemes( lexeme* head ) {
                 break;
             case op :
                 printf(":");
+                break;
+            case end :
+                printf(" ]/}");
                 break;
             default:
                 printf("fail");
@@ -58,25 +61,18 @@ int main( int argc, char** argv ) {
 
     FILE* fp = fopen( argv[1], "r");
 
-    puts("1");
-
     if (fp) {
         lexeme* head = (lexeme*) malloc(sizeof(lexeme));
         head -> type = null;
-
-        puts("2");
-
-        lex_json(head, fp);
-
-        puts("3");
-
+        int i;
+        i = lex_json(head, fp);
+        printf("RETURN: %d\n", i);
+        
         print_lexemes(head);
-
-        puts("4");
-
         fclose(fp);
 
-        puts("5");
+    } else {
+        puts("file error.");
     }
     return 0;
 }
