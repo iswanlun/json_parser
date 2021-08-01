@@ -4,16 +4,16 @@
 #include <ctype.h>
 
 FILE* json;
-lexeme* curr;
+value* curr;
 
-int lex ();
+int lex();
 
-void fold( lexeme* ptr ) {
+void fold( value* ptr ) {
 
     if ( ptr -> set_size ) {
 
-        ptr -> set = malloc( ptr -> set_size * sizeof(lexeme*));
-        lexeme* prev = ptr, *tmp = ptr -> next;
+        ptr -> set = malloc( ptr -> set_size * sizeof(value*));
+        value* prev = ptr, *tmp = ptr -> next;
 
         for ( int i = 0; i < ptr -> set_size; ++i ) {
 
@@ -25,7 +25,6 @@ void fold( lexeme* ptr ) {
                 tmp = tmp -> next; 
             } while ( prev -> type != comma && tmp != curr );
         }
-
         prev -> next = NULL;
         ptr -> next = curr;
     }
@@ -33,7 +32,7 @@ void fold( lexeme* ptr ) {
 
 int lex_collection() {
 
-    lexeme* tmp = curr;
+    value* tmp = curr;
     tmp -> set_size = lex();
     fold(tmp);
     return 1 + lex();
@@ -42,8 +41,7 @@ int lex_collection() {
 int lex_string() {
 
     int size = 0, len = 0;
-    char* str = NULL;
-    char c;
+    char* str = NULL, c;
 
     escape:
     while ( (c = (char) fgetc(json)) != '"' && c != EOF ) {
@@ -69,7 +67,7 @@ int lex_string() {
 }
 
 int lex_comma() {
-    curr -> next = (lexeme*) malloc(sizeof(lexeme));
+    curr -> next = (value*) malloc(sizeof(value));
     curr = curr -> next;
     curr -> type = comma;
     return lex();
@@ -113,45 +111,36 @@ int lex_phrase( char c ) {
     }
 
     while ( c >= 'a' && c <= 'z' ) { c = (char) fgetc(json); }
-
     return ( c == ',' ) ? 1 + lex_comma() : 1 + lex();
-
 }
 
 int lex () {
 
-    curr -> next = (lexeme*) malloc(sizeof(lexeme));
+    curr -> next = (value*) malloc(sizeof(value));
     curr = curr -> next;
 
     char c = (char) fgetc(json);
-
     while ( isspace(c) ) { c = (char) fgetc(json); }
 
     switch ( c ) {
-        case '{':
-            curr -> type = object;
-            return lex_collection();
+        case '{':   curr -> type = object;
+                    return lex_collection();
         
-        case '[':
-            curr -> type = array;
-            return lex_collection();
+        case '[':   curr -> type = array;
+                    return lex_collection();
 
         case '}':
         case ']':
-        case EOF:
-            curr -> type = end;
-            return 0;
+        case EOF:   curr -> type = end;
+                    return 0;
 
-        case '"':
-            return lex_string();
+        case '"':   return lex_string();
 
-        case ':':
-            curr -> type = op;
-            return lex() - 1;
+        case ':':   curr -> type = op;
+                    return lex() - 1;
         
-        case ',':
-            curr -> type = comma;
-            return lex();
+        case ',':   curr -> type = comma;
+                    return lex();
 
         default:
             if ( isdigit(c) ) {
@@ -159,11 +148,10 @@ int lex () {
             } else {
                 return lex_phrase( c );
             }
-        break;
     }
 }
 
-int lex_json( lexeme* head, FILE* fp ) {
+int lex_json( value* head, FILE* fp ) {
     curr = head;
     json = fp;
     return lex();

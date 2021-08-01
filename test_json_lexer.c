@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void print_lexemes( lexeme* head, int depth ) {
+void print_values( value* head, int depth ) {
 
     char* enum_names[] = {
         "string_t", "number", "object", 
@@ -10,7 +10,7 @@ void print_lexemes( lexeme* head, int depth ) {
         "op", "end", "comma"
     };
 
-    lexeme* tmp;
+    value* tmp;
 
     while ( head != NULL ) {
 
@@ -34,7 +34,7 @@ void print_lexemes( lexeme* head, int depth ) {
                 printf("{/[ size : %d\n", head -> set_size );
 
                 for ( int i = 0; i < head -> set_size; ++i ) {
-                    print_lexemes( head -> set[i], depth+1 );
+                    print_values( head -> set[i], depth+1 );
                 }
                 break;
 
@@ -74,13 +74,13 @@ int main( int argc, char** argv ) {
     FILE* fp = fopen( argv[1], "r");
 
     if (fp) {
-        lexeme* head = (lexeme*) malloc(sizeof(lexeme));
+        value* head = (value*) malloc(sizeof(value));
         head -> type = null;
         int i;
         i = lex_json(head, fp);
         printf("RETURN: %d\n", i);
         
-        print_lexemes(head, 0);
+        print_values(head, 0);
         fclose(fp);
 
     } else {

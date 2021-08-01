@@ -3,28 +3,27 @@
 
 #include <stdio.h>
 
-typedef enum lexeme_type {
+typedef enum value_type {
     string_t,   number,     object,
     array,      true,       false,
     null,       op,         end,
     comma
-} lexeme_type;
+} value_type;
 
-typedef struct lexeme {
+typedef struct value {
 
-    lexeme_type type;
-
-    int set_size;
-
+    value_type type;
     void* value;
-    void** set;
 
-    struct lexeme* next;
+    int set_size;   
+    value** set;
 
-} lexeme;
+    struct value* next;
 
-int lex_json( lexeme* head, FILE* fp );
+} value;
 
-int disose( lexeme* head );
+int lex_json( value* head, FILE* fp );
+
+int disose( value* head );
 
 #endif
