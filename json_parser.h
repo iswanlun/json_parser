@@ -6,8 +6,7 @@
 typedef enum value_type {
     string_t,   number,     object,
     array,      true,       false,
-    null,       op,         end,
-    comma
+    null,       end,        comma
 } value_type;
 
 typedef struct value {

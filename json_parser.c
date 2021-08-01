@@ -14,12 +14,19 @@ void fold( value* ptr ) {
         value* prev = ptr, *tmp = ptr -> next;
 
         for ( int i = 0; i < ptr -> set_size; ++i ) {
+
             ptr -> set[i] = tmp;
             prev -> next = NULL;
+
             do { 
                 prev = tmp;
                 tmp = tmp -> next;
-            } while ( prev -> type != comma && tmp != curr );
+                if ( tmp -> type == comma ) {
+                    tmp = tmp -> next;
+                    free(prev -> next);
+                    break;
+                }
+            } while ( tmp != curr );
         }
         prev -> next = NULL;
         ptr -> next = curr;
@@ -105,11 +112,14 @@ int parse_phrase( char c ) {
 }
 
 int parse () {
-    curr -> next = (value*) malloc(sizeof(value));
-    curr = curr -> next;
 
     char c = (char) fgetc(json);
     while ( isspace(c) ) { c = (char) fgetc(json); }
+
+    if ( c == ':' ) { return parse() - 1; }
+
+    curr -> next = (value*) malloc(sizeof(value));
+    curr = curr -> next;   
 
     switch ( c ) {
         case '{':   curr -> type = object;
@@ -120,9 +130,6 @@ int parse () {
 
         case '"':   return parse_string();
 
-        case ':':   curr -> type = op;
-                    return parse() - 1;
-        
         case ',':   curr -> type = comma;
                     return parse();
 

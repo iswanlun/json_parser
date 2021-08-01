@@ -7,7 +7,7 @@ void print_values( value* head, int depth ) {
     char* enum_names[] = {
         "string_t", "number", "object", 
         "array", "true", "false", "null", 
-        "op", "end", "comma"
+        "end", "comma"
     };
 
     value* tmp;
@@ -47,9 +47,6 @@ void print_values( value* head, int depth ) {
             case null :
                 printf("null");
                 break;
-            case op :
-                printf(":");
-                break;
             case end :
                 printf(" ]/}");
                 break;
@@ -74,7 +71,6 @@ int main( int argc, char** argv ) {
     FILE* fp = fopen( argv[1], "r");
 
     if (fp) {
-
         value* head = parse_json(fp);
         print_values(head, 0);
         fclose(fp);
