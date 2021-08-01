@@ -16,3 +16,4 @@ test_json_lexer : test_json_lexer.c json_lexer.o
 PROXY clean : 
 	rm *.o \
 	rm *.out \
+	rm *.h.gch

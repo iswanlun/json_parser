@@ -1,5 +1,5 @@
-#ifndef JSON_LEXER_H
-#define JSON_LEXER_H
+#ifndef JSON_PARSER_H
+#define JSON_PARSER_H
 
 #include <stdio.h>
 
