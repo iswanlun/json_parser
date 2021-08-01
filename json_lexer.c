@@ -8,27 +8,34 @@ lexeme* curr;
 
 int lex ();
 
-int fold( lexeme* ptr ) {
+void fold( lexeme* ptr ) {
 
-    ptr -> set = malloc( ptr -> set_size * sizeof(lexeme*));
-    lexeme* tmp = ptr -> next;
+    if ( ptr -> set_size ) {
 
-    if ( ptr -> type == array ) {
+        ptr -> set = malloc( ptr -> set_size * sizeof(lexeme*));
+        lexeme* prev = ptr, *tmp = ptr -> next;
+
         for ( int i = 0; i < ptr -> set_size; ++i ) {
-            ptr -> set[i] = tmp;
-            tmp = tmp -> next;
-        }
-    } else {
-        
-    }
 
+            ptr -> set[i] = tmp;
+            prev -> next = NULL;
+
+            do { 
+                prev = tmp;
+                tmp = tmp -> next; 
+            } while ( prev -> type != comma && tmp != curr );
+        }
+
+        prev -> next = NULL;
+        ptr -> next = curr;
+    }
 }
 
 int lex_collection() {
 
     lexeme* tmp = curr;
     tmp -> set_size = lex();
-    // fold(tmp);
+    fold(tmp);
     return 1 + lex();
 }
 
@@ -61,15 +68,17 @@ int lex_string() {
     return 1 + lex();
 }
 
-int lex_colen() {
-    curr -> type = op;
-    return lex() - 1;
+int lex_comma() {
+    curr -> next = (lexeme*) malloc(sizeof(lexeme));
+    curr = curr -> next;
+    curr -> type = comma;
+    return lex();
 } 
 
 int lex_number( char c ) {
 
     curr -> type = number;
-    double* result = (double*) malloc(sizeof(double));
+    curr -> value = (double*) malloc(sizeof(double));
     double n = 0.0, p = 1.0;
 
     while ( isdigit(c) ) {
@@ -87,10 +96,8 @@ int lex_number( char c ) {
         c = (char) fgetc(json);
     }
 
-    *result = n / p;
-    curr -> value = result;
-
-    return 1 + lex();
+    *((double*)curr -> value) = n / p;
+    return ( c == ',' ) ? 1 + lex_comma() : 1 + lex();
 }
 
 int lex_phrase( char c ) {
@@ -107,7 +114,8 @@ int lex_phrase( char c ) {
 
     while ( c >= 'a' && c <= 'z' ) { c = (char) fgetc(json); }
 
-    return 1 + lex();
+    return ( c == ',' ) ? 1 + lex_comma() : 1 + lex();
+
 }
 
 int lex () {
@@ -117,7 +125,7 @@ int lex () {
 
     char c = (char) fgetc(json);
 
-    while ( isspace(c) || c == ',' ) { c = (char) fgetc(json); }
+    while ( isspace(c) ) { c = (char) fgetc(json); }
 
     switch ( c ) {
         case '{':
@@ -138,7 +146,12 @@ int lex () {
             return lex_string();
 
         case ':':
-            return lex_colen();
+            curr -> type = op;
+            return lex() - 1;
+        
+        case ',':
+            curr -> type = comma;
+            return lex();
 
         default:
             if ( isdigit(c) ) {

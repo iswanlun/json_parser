@@ -2,17 +2,22 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void print_lexemes( lexeme* head ) {
+void print_lexemes( lexeme* head, int depth ) {
 
     char* enum_names[] = {
         "string_t", "number", "object", 
         "array", "true", "false", "null", 
-        "op", "end"
+        "op", "end", "comma"
     };
 
-    lexeme* tmp = head;
+    lexeme* tmp;
 
     while ( head != NULL ) {
+
+        for ( int i = 0; i < depth; ++i ) {
+            printf("-");
+        }
+
         printf(" %s \t\t", enum_names[head -> type]);
 
         switch (head -> type) {
@@ -25,11 +30,14 @@ void print_lexemes( lexeme* head ) {
                 free(head -> value);
                 break;
             case object :
-                printf("{ size : %d", head -> set_size );
-                break;
             case array :
-                printf("[ size : %d", head -> set_size );
+                printf("{/[ size : %d\n", head -> set_size );
+
+                for ( int i = 0; i < head -> set_size; ++i ) {
+                    print_lexemes( head -> set[i], depth+1 );
+                }
                 break;
+
             case true :
                 printf("true");
                 break;
@@ -45,13 +53,17 @@ void print_lexemes( lexeme* head ) {
             case end :
                 printf(" ]/}");
                 break;
+            case comma :
+                printf(" ,");
+                break;
             default:
                 printf("fail");
         }
-        printf("\n");
+
         tmp = head -> next;
         free(head);
         head = tmp;
+        printf("\n");
     }
 }
 
@@ -68,7 +80,7 @@ int main( int argc, char** argv ) {
         i = lex_json(head, fp);
         printf("RETURN: %d\n", i);
         
-        print_lexemes(head);
+        print_lexemes(head, 0);
         fclose(fp);
 
     } else {

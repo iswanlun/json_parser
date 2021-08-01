@@ -6,7 +6,8 @@
 typedef enum lexeme_type {
     string_t,   number,     object,
     array,      true,       false,
-    null,       op,         end
+    null,       op,         end,
+    comma
 } lexeme_type;
 
 typedef struct lexeme {
