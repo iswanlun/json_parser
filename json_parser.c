@@ -6,23 +6,19 @@
 FILE* json;
 value* curr;
 
-int lex();
+int parse();
 
 void fold( value* ptr ) {
-
     if ( ptr -> set_size ) {
-
         ptr -> set = malloc( ptr -> set_size * sizeof(value*));
         value* prev = ptr, *tmp = ptr -> next;
 
         for ( int i = 0; i < ptr -> set_size; ++i ) {
-
             ptr -> set[i] = tmp;
             prev -> next = NULL;
-
             do { 
                 prev = tmp;
-                tmp = tmp -> next; 
+                tmp = tmp -> next;
             } while ( prev -> type != comma && tmp != curr );
         }
         prev -> next = NULL;
@@ -30,16 +26,14 @@ void fold( value* ptr ) {
     }
 }
 
-int lex_collection() {
-
+int parse_collection() {
     value* tmp = curr;
-    tmp -> set_size = lex();
+    tmp -> set_size = parse();
     fold(tmp);
-    return 1 + lex();
+    return 1 + parse();
 }
 
-int lex_string() {
-
+int parse_string() {
     int size = 0, len = 0;
     char* str = NULL, c;
 
@@ -61,20 +55,17 @@ int lex_string() {
 
     curr -> type = string_t;
     curr -> value = str;
-    curr -> set_size = len;
-
-    return 1 + lex();
+    return 1 + parse();
 }
 
-int lex_comma() {
+int parse_comma() {
     curr -> next = (value*) malloc(sizeof(value));
     curr = curr -> next;
     curr -> type = comma;
-    return lex();
+    return parse();
 } 
 
-int lex_number( char c ) {
-
+int parse_number( char c ) {
     curr -> type = number;
     curr -> value = (double*) malloc(sizeof(double));
     double n = 0.0, p = 1.0;
@@ -95,11 +86,10 @@ int lex_number( char c ) {
     }
 
     *((double*)curr -> value) = n / p;
-    return ( c == ',' ) ? 1 + lex_comma() : 1 + lex();
+    return ( c == ',' ) ? 1 + parse_comma() : 1 + parse();
 }
 
-int lex_phrase( char c ) {
-
+int parse_phrase( char c ) {
     if ( c == 't' ) {
         curr -> type = true;
 
@@ -111,11 +101,10 @@ int lex_phrase( char c ) {
     }
 
     while ( c >= 'a' && c <= 'z' ) { c = (char) fgetc(json); }
-    return ( c == ',' ) ? 1 + lex_comma() : 1 + lex();
+    return ( c == ',' ) ? 1 + parse_comma() : 1 + parse();
 }
 
-int lex () {
-
+int parse () {
     curr -> next = (value*) malloc(sizeof(value));
     curr = curr -> next;
 
@@ -124,35 +113,36 @@ int lex () {
 
     switch ( c ) {
         case '{':   curr -> type = object;
-                    return lex_collection();
+                    return parse_collection();
         
         case '[':   curr -> type = array;
-                    return lex_collection();
+                    return parse_collection();
+
+        case '"':   return parse_string();
+
+        case ':':   curr -> type = op;
+                    return parse() - 1;
+        
+        case ',':   curr -> type = comma;
+                    return parse();
 
         case '}':
         case ']':
         case EOF:   curr -> type = end;
                     return 0;
 
-        case '"':   return lex_string();
-
-        case ':':   curr -> type = op;
-                    return lex() - 1;
-        
-        case ',':   curr -> type = comma;
-                    return lex();
-
-        default:
-            if ( isdigit(c) ) {
-                return lex_number( c );
-            } else {
-                return lex_phrase( c );
-            }
+        default:    if ( isdigit(c) ) {
+                        return parse_number( c );
+                    } else {
+                        return parse_phrase( c );
+                    }
     }
 }
 
-int lex_json( value* head, FILE* fp ) {
-    curr = head;
+value* parse_json( FILE* fp ) {
+    value head;
+    curr = &head;
     json = fp;
-    return lex();
+    parse();
+    return head.next;
 }

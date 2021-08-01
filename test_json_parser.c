@@ -74,12 +74,8 @@ int main( int argc, char** argv ) {
     FILE* fp = fopen( argv[1], "r");
 
     if (fp) {
-        value* head = (value*) malloc(sizeof(value));
-        head -> type = null;
-        int i;
-        i = lex_json(head, fp);
-        printf("RETURN: %d\n", i);
-        
+
+        value* head = parse_json(fp);
         print_values(head, 0);
         fclose(fp);
 

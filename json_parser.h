@@ -16,14 +16,14 @@ typedef struct value {
     void* value;
 
     int set_size;   
-    value** set;
+    struct value** set;
 
     struct value* next;
 
 } value;
 
-int lex_json( value* head, FILE* fp );
+value* parse_json( FILE* fp );
 
-int disose( value* head );
+int dispose( value* head );
 
 #endif
