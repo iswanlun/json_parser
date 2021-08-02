@@ -23,6 +23,6 @@ typedef struct value {
 
 value* parse_json( FILE* fp );
 
-int dispose( value* head );
+void dispose( value* ptr );
 
 #endif

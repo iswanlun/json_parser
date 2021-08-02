@@ -9,28 +9,30 @@ value* curr;
 int parse();
 
 void fold( value* ptr ) {
+
     if ( ptr -> set_size ) {
+
         ptr -> set = malloc( ptr -> set_size * sizeof(value*));
         value* prev = ptr, *tmp = ptr -> next;
 
         for ( int i = 0; i < ptr -> set_size; ++i ) {
 
             ptr -> set[i] = tmp;
-            prev -> next = NULL;
 
-            do { 
+            while ( tmp != curr ) {
                 prev = tmp;
                 tmp = tmp -> next;
+
                 if ( tmp -> type == comma ) {
                     tmp = tmp -> next;
-                    free(prev -> next);
+                    free( prev -> next );
+                    prev -> next = NULL;
                     break;
                 }
-            } while ( tmp != curr );
+            }
         }
-        prev -> next = NULL;
-        ptr -> next = curr;
     }
+    curr = ptr;
 }
 
 int parse_collection() {
@@ -116,7 +118,16 @@ int parse () {
     char c = (char) fgetc(json);
     while ( isspace(c) ) { c = (char) fgetc(json); }
 
-    if ( c == ':' ) { return parse() - 1; }
+    switch ( c ) {
+        case ':' : return parse() - 1;
+
+        case '}' :
+        case ']' :
+        case EOF :  return 0; 
+        
+        default:
+            break;
+    }
 
     curr -> next = (value*) malloc(sizeof(value));
     curr = curr -> next;   
@@ -132,11 +143,6 @@ int parse () {
 
         case ',':   curr -> type = comma;
                     return parse();
-
-        case '}':
-        case ']':
-        case EOF:   curr -> type = end;
-                    return 0;
 
         default:    if ( isdigit(c) ) {
                         return parse_number( c );
