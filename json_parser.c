@@ -7,6 +7,7 @@ FILE* json;
 value* curr;
 
 int parse();
+int parse_char( char c );
 
 void fold( value* ptr ) {
 
@@ -16,7 +17,7 @@ void fold( value* ptr ) {
 
         for ( int i = 0; i < ptr -> set_size; ++i ) {
             ptr -> set[i] = tmp;
-
+            
             while ( tmp != curr ) {
                 prev = tmp;
                 tmp = tmp -> next;
@@ -29,6 +30,7 @@ void fold( value* ptr ) {
                 }
             }
         }
+        tmp -> next = NULL;
     }
     curr = ptr;
 }
@@ -65,13 +67,6 @@ int parse_string() {
     return 1 + parse();
 }
 
-int parse_comma() {
-    curr -> next = (value*) malloc(sizeof(value));
-    curr = curr -> next;
-    curr -> type = comma;
-    return parse();
-} 
-
 int parse_number( char c ) {
     curr -> type = number;
     curr -> value = (double*) malloc(sizeof(double));
@@ -93,10 +88,11 @@ int parse_number( char c ) {
     }
 
     *((double*)curr -> value) = n / p;
-    return ( c == ',' ) ? 1 + parse_comma() : 1 + parse();
+    return 1 + parse_char( c );
 }
 
 int parse_phrase( char c ) {
+
     if ( c == 't' ) {
         curr -> type = true;
 
@@ -108,15 +104,19 @@ int parse_phrase( char c ) {
     }
 
     while ( c >= 'a' && c <= 'z' ) { c = (char) fgetc(json); }
-    return ( c == ',' ) ? 1 + parse_comma() : 1 + parse();
+    return 1 + parse_char( c );
 }
-
 
 int parse () {
 
     char c = (char) fgetc(json);
-    while ( isspace(c) ) { c = (char) fgetc(json); }
+    return parse_char(c);
+}
 
+int parse_char( char c ) {
+
+    while ( isspace(c) ) { c = (char) fgetc(json); }
+   
     switch ( c ) {
         case ':' : return parse() - 1;
 
