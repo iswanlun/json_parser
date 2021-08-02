@@ -5,7 +5,7 @@
 char* enum_names[] = {
     "string_t", "number", "object", 
     "array", "true", "false", "null", 
-    "end", "comma"
+    "comma"
 };
 
 void print_value( value* head, int depth ) {
@@ -38,9 +38,6 @@ void print_value( value* head, int depth ) {
         case null :
             printf("null");
             break;
-        case end :
-            printf(" ]/}");
-            break;
         case comma :
             printf(",");
             break;
@@ -68,25 +65,6 @@ void print_tree( value* ptr, int depth ) {
         printf(" -> ");
         print_tree( ptr -> next, d+1 );
     }
-}
-
-void dispose( value* ptr ) {
-
-    if ( ptr -> set_size ) {
-
-        for ( int i = 0; i < ptr -> set_size; ++i ) {
-
-            if ( ptr -> set[i] -> next ) {
-                dispose( ptr -> set[i] -> next );
-            }
-
-            free ( ptr -> set[i] );
-        }
-
-        free( ptr -> set );
-    }
-    
-    free( ptr );
 }
 
 int main( int argc, char** argv ) {

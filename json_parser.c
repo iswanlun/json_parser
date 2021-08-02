@@ -11,12 +11,10 @@ int parse();
 void fold( value* ptr ) {
 
     if ( ptr -> set_size ) {
-
-        ptr -> set = malloc( ptr -> set_size * sizeof(value*));
+        ptr -> set = malloc( ptr -> set_size * sizeof(value*) );
         value* prev = ptr, *tmp = ptr -> next;
 
         for ( int i = 0; i < ptr -> set_size; ++i ) {
-
             ptr -> set[i] = tmp;
 
             while ( tmp != curr ) {
@@ -113,6 +111,7 @@ int parse_phrase( char c ) {
     return ( c == ',' ) ? 1 + parse_comma() : 1 + parse();
 }
 
+
 int parse () {
 
     char c = (char) fgetc(json);
@@ -158,4 +157,17 @@ value* parse_json( FILE* fp ) {
     json = fp;
     parse();
     return head.next;
+}
+
+void dispose( value* ptr ) {
+    if ( ptr -> set_size ) {
+        for ( int i = 0; i < ptr -> set_size; ++i ) {
+            if ( ptr -> set[i] -> next ) {
+                dispose( ptr -> set[i] -> next );
+            }
+            free ( ptr -> set[i] );
+        }
+        free( ptr -> set );
+    }
+    free( ptr );
 }
