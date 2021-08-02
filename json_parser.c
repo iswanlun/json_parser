@@ -122,9 +122,6 @@ int parse_char( char c ) {
         case '}' :
         case ']' :
         case EOF :  return 0; 
-        
-        default:
-            break;
     }
 
     curr -> next = (value*) malloc(sizeof(value));
@@ -144,9 +141,8 @@ int parse_char( char c ) {
 
         default:    if ( isdigit(c) ) {
                         return parse_number( c );
-                    } else {
-                        return parse_phrase( c );
                     }
+                    return parse_phrase( c );
     }
 }
 
