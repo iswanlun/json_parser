@@ -108,7 +108,6 @@ int parse_phrase( char c ) {
 }
 
 int parse () {
-
     char c = (char) fgetc(json);
     return parse_char(c);
 }
@@ -116,7 +115,7 @@ int parse () {
 int parse_char( char c ) {
 
     while ( isspace(c) ) { c = (char) fgetc(json); }
-   
+
     switch ( c ) {
         case ':' : return parse() - 1;
 
@@ -170,4 +169,24 @@ void dispose( value* ptr ) {
         free( ptr -> set );
     }
     free( ptr );
+}
+
+value* object_get( value* obj, char* key ) {
+
+    if ( obj -> set_size ) {
+        for ( int i = 0; i < obj -> set_size; ++i ) {
+            if ( ! strcmp( obj -> set[i] -> value, key ) ) {
+                return obj -> set[i] -> next;
+            }
+        }
+    }
+    return NULL;
+}
+
+value* array_get( value* arr, int index ) {
+
+    if ( index >= 0 && index < arr -> set_size ) {
+        return arr -> set[index];
+    }
+    return NULL;
 }

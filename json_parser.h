@@ -25,4 +25,8 @@ value* parse_json( FILE* fp );
 
 void dispose( value* ptr );
 
+value* object_get( value* obj, char* key );
+
+value* array_get( value* arr, int index );
+
 #endif

@@ -77,7 +77,6 @@ int main( int argc, char** argv ) {
         value* head = parse_json(fp);
 
         print_tree(head, 0);
-
         dispose(head);
         fclose(fp);
 
