@@ -121,6 +121,8 @@ int parse_char( parser* psr, char c ) {
 
     while ( isspace(c) ) { c = (char) fgetc( psr -> json ); }
 
+    printf(" C : %c ", c);
+
     switch ( c ) {
         case ':' :  return ( is_valid( psr -> stk, col ) ) ? parse( psr ) - 1 : clean();
 

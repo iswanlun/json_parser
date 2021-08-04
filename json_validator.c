@@ -43,9 +43,9 @@ short ef( int mv, valid_state state, stack_v* stk ) {
 }
 
 fsm_mode fsm[10][9] = {
-    { { -1, cur, &mv }, { 1, ar_v, &mv_p }, { 0, er, &err },    { 0, er, &err },    { 1, ar_v },         { 0, er, &err },  { 1, ar_v, &arr_p },  { 1, ar_v, &obj_p },  { 0, er, &err } },
+    { { -1, cur, &mv }, { 1, ar_v, &mv_p }, { 0, er, &err },    { 0, er, &err },    { 1, ar_v, &mv_p },  { 0, er, &err },  { 1, ar_v, &arr_p },  { 1, ar_v, &obj_p },  { 0, er, &err } },
     { { -2, cur, &mv }, { 0, er, &err },    { 1, ar_c, &mv_p }, { 0, er, &err },    { 0, er, &err },     { 0, er, &err },  { 0, er, &err },      { 0, er, &err },      { 0, er, &err } },
-    { { 0, er, &err },  { -2, cur, &mv },   { 0, er, &err },    { 0, er, &err },    { -2, cur, &mv },    { 0, er, &err },  { -1, ar_v, &arr_p }, { -1, ar_v, &obj_p }, { 0, er, &err } },
+    { { 0, er, &err },  { -1, cur, &mv },   { 0, er, &err },    { 0, er, &err },    { -1, cur, &mv },    { 0, er, &err },  { -1, ar_v, &arr_p }, { -1, ar_v, &obj_p }, { 0, er, &err } },
     { { 0, er, &err },  { 0, er, &err },    { 0, er, &err },    { -1, cur, &mv },   { 1, ob_s, &mv_p },  { 0, er, &err },  { 0, er, &err },      { 0, er, &err },      { 0, er, &err } },
     { { 0, er, &err },  { 0, er, &err },    { 0, er, &err },    { 0, er, &err },    { 0, er, &err },     { 1, c, &mv_p },  { 0, er, &err },      { 0, er, &err },      { 0, er, &err } },
     { { 0, er, &err },  { 1, ob_v, &mv_p }, { 0, er, &err },    { 0, er, &err },    { 1, ob_v, &mv_p },  { 0, er, &err },  { 1, ob_v, &arr_p },  { 1, ob_v, &obj_p },  { 0, er, &err } },
@@ -65,6 +65,8 @@ short is_valid( stack_v* stk, input i ) {
     int m = fsm[stk -> stack[stk -> s_ptr]][(short)i].movement;
     valid_state s = fsm[(short)stk -> stack[stk -> s_ptr]][(short)i].next_state;
     short r = stk -> stack[stk -> s_ptr];
+
+    printf("R : %d C : %d\n", r, i );
 
     return fsm[r][i].action(m, s, stk);
 }
