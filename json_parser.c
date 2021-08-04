@@ -71,6 +71,7 @@ int parse_number( char c ) {
     curr -> type = number;
     curr -> value = (double*) malloc(sizeof(double));
     double n = 0.0, p = 1.0;
+    if ( c == '-' ) { c = (char) fgetc(json); p = -1.0; }
 
     while ( isdigit(c) ) {
 
@@ -103,6 +104,7 @@ int parse_phrase( char c ) {
         curr -> type = null;
     }
 
+    c = (char) fgetc(json);
     while ( c >= 'a' && c <= 'z' ) { c = (char) fgetc(json); }
     return 1 + parse_char( c );
 }
@@ -129,7 +131,7 @@ int parse_char( char c ) {
 
     switch ( c ) {
         case '{':   curr -> type = object;
-                    return parse_collection();
+                    return parse_collection(); // return ( isvalid() ) ? parse_collection() : clean() ;
         
         case '[':   curr -> type = array;
                     return parse_collection();
@@ -139,7 +141,7 @@ int parse_char( char c ) {
         case ',':   curr -> type = comma;
                     return parse();
 
-        default:    if ( isdigit(c) ) {
+        default:    if ( isdigit(c) || c == '-' ) {
                         return parse_number( c );
                     }
                     return parse_phrase( c );
@@ -155,15 +157,23 @@ value* parse_json( FILE* fp ) {
 }
 
 void dispose( value* ptr ) {
+
+    if ( ptr -> value ) {
+        free ( ptr -> value ); 
+    }
+
     if ( ptr -> set_size ) {
+
         for ( int i = 0; i < ptr -> set_size; ++i ) {
-            if ( ptr -> set[i] -> next ) {
-                dispose( ptr -> set[i] -> next );
-            }
-            free ( ptr -> set[i] );
+
+            dispose( ptr -> set[i] );
         }
         free( ptr -> set );
+
+    } else if ( ptr -> next ) {
+        dispose( ptr -> next );
     }
+
     free( ptr );
 }
 

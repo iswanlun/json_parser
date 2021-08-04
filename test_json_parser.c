@@ -1,6 +1,7 @@
 #include "json_parser.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 char* enum_names[] = {
     "string_t", "number", "object", 
@@ -71,10 +72,21 @@ int main( int argc, char** argv ) {
 
     if ( argc < 2 ) return 1;
 
-    FILE* fp = fopen( argv[1], "r");
+    FILE* fp = fopen( argv[1], "r" );
 
     if (fp) {
+
+        struct timespec begin, end;
+        clock_gettime(CLOCK_MONOTONIC_RAW, &begin);
+
         value* head = parse_json(fp);
+
+        clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+
+        printf ("Parse time = %f seconds\n\n",
+            (end.tv_nsec - begin.tv_nsec) / 1000000000.0 + 
+            (end.tv_sec  - begin.tv_sec)
+        );
 
         print_tree(head, 0);
         dispose(head);
