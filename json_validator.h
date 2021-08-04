@@ -13,7 +13,7 @@ typedef struct {
 
     valid_state* stack;
     int s_ptr;
-    int s_size
+    int s_size;
 
 } stack_v;
 

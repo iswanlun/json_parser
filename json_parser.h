@@ -1,6 +1,7 @@
 #ifndef JSON_PARSER_H
 #define JSON_PARSER_H
 
+#include "json_validator.h"
 #include <stdio.h>
 
 typedef enum value_type {
@@ -20,6 +21,14 @@ typedef struct value {
     struct value* next;
 
 } value;
+
+typedef struct parser {
+
+    FILE* json;
+    value* curr;
+    stack_v* stk;
+
+} parser;
 
 value* parse_json( FILE* fp );
 

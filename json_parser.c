@@ -1,15 +1,13 @@
 #include "json_parser.h"
+#include "json_validator.h"
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
 
-FILE* json;
-value* curr;
+int parse( parser* psr );
+int parse_char( parser* psr, char c );
 
-int parse();
-int parse_char( char c );
-
-void fold( value* ptr ) {
+void fold( parser* psr, value* ptr ) {
 
     if ( ptr -> set_size ) {
         ptr -> set = malloc( ptr -> set_size * sizeof(value*) );
@@ -18,7 +16,7 @@ void fold( value* ptr ) {
         for ( int i = 0; i < ptr -> set_size; ++i ) {
             ptr -> set[i] = tmp;
             
-            while ( tmp != curr ) {
+            while ( tmp != psr -> curr ) {
                 prev = tmp;
                 tmp = tmp -> next;
 
@@ -32,22 +30,22 @@ void fold( value* ptr ) {
         }
         tmp -> next = NULL;
     }
-    curr = ptr;
+    psr -> curr = ptr;
 }
 
-int parse_collection() {
-    value* tmp = curr;
-    tmp -> set_size = parse();
-    fold(tmp);
-    return 1 + parse();
+int parse_collection( parser* psr ) {
+    value* tmp = psr -> curr;
+    tmp -> set_size = parse( psr );
+    fold(psr, tmp);
+    return 1 + parse( psr );
 }
 
-int parse_string() {
+int parse_string( parser* psr ) {
     int size = 0, len = 0;
     char* str = NULL, c;
 
     escape:
-    while ( (c = (char) fgetc(json)) != '"' && c != EOF ) {
+    while ( (c = (char) fgetc( psr -> json )) != '"' && c != EOF ) {
         if ( len + 1 >= size ) {
             size = (size * 2) + 1;
             str = realloc(str, sizeof(char) * size);
@@ -62,97 +60,109 @@ int parse_string() {
         str[len] = '\0';
     }
 
-    curr -> type = string_t;
-    curr -> value = str;
-    return 1 + parse();
+    psr -> curr -> type = string_t;
+    psr -> curr -> value = str;
+    return 1 + parse( psr );
 }
 
-int parse_number( char c ) {
-    curr -> type = number;
-    curr -> value = (double*) malloc(sizeof(double));
+int parse_number( parser* psr, char c ) {
+    psr -> curr -> type = number;
+    psr -> curr -> value = (double*) malloc(sizeof(double));
     double n = 0.0, p = 1.0;
-    if ( c == '-' ) { c = (char) fgetc(json); p = -1.0; }
+    if ( c == '-' ) { c = (char) fgetc( psr -> json ); p = -1.0; }
 
     while ( isdigit(c) ) {
 
         n = (n * 10.0) + ( (int) (c - '0') );
-        c = (char) fgetc(json);
+        c = (char) fgetc( psr -> json );
     }
     
-    if ( c == '.' ) { c = (char) fgetc(json); }
+    if ( c == '.' ) { c = (char) fgetc( psr -> json ); }
 
     while ( isdigit(c) ) {
 
         n = (n * 10.0) + ( (int) (c - '0') );
         p *= 10.0;
-        c = (char) fgetc(json);
+        c = (char) fgetc( psr -> json );
     }
 
-    *((double*)curr -> value) = n / p;
-    return 1 + parse_char( c );
+    *((double*)psr -> curr -> value) = n / p;
+    return 1 + parse_char( psr, c );
 }
 
-int parse_phrase( char c ) {
+int parse_phrase( parser* psr, char c ) {
 
     if ( c == 't' ) {
-        curr -> type = true;
+        psr -> curr -> type = true;
 
     } else if ( c == 'f' ) {
-        curr -> type = false;
+        psr -> curr -> type = false;
 
     } else {
-        curr -> type = null;
+        psr -> curr -> type = null;
     }
 
-    c = (char) fgetc(json);
-    while ( c >= 'a' && c <= 'z' ) { c = (char) fgetc(json); }
-    return 1 + parse_char( c );
+    c = (char) fgetc( psr -> json );
+    while ( c >= 'a' && c <= 'z' ) { c = (char) fgetc( psr -> json ); }
+    return 1 + parse_char( psr, c );
 }
 
-int parse () {
-    char c = (char) fgetc(json);
-    return parse_char(c);
+int clean() {
+    printf("Clean triggered event.\n");
+    return 0;
 }
 
-int parse_char( char c ) {
+int parse ( parser* psr ) {
+    char c = (char) fgetc( psr -> json );
+    return parse_char(psr, c);
+}
 
-    while ( isspace(c) ) { c = (char) fgetc(json); }
+int parse_char( parser* psr, char c ) {
+
+    while ( isspace(c) ) { c = (char) fgetc( psr -> json ); }
 
     switch ( c ) {
-        case ':' : return parse() - 1;
+        case ':' :  return ( is_valid( psr -> stk, col ) ) ? parse( psr ) - 1 : clean();
 
-        case '}' :
-        case ']' :
-        case EOF :  return 0; 
+        case '}' :  return ( is_valid( psr -> stk, ob_e ) ) ? 0 : clean();
+        case ']' :  return ( is_valid( psr -> stk, ar_e ) ) ? 0 : clean();
+        case EOF :  return ( is_valid( psr -> stk, end ) ) ? 0 : clean(); 
     }
 
-    curr -> next = (value*) malloc(sizeof(value));
-    curr = curr -> next;   
+    psr -> curr -> next = (value*) malloc(sizeof(value));
+    psr -> curr = psr -> curr -> next;   
 
     switch ( c ) {
-        case '{':   curr -> type = object;
-                    return parse_collection(); // return ( isvalid() ) ? parse_collection() : clean() ;
+        case '{':   psr -> curr -> type = object;
+                    return ( is_valid( psr -> stk, ob_i ) ) ? parse_collection( psr ) : clean();
         
-        case '[':   curr -> type = array;
-                    return parse_collection();
+        case '[':   psr -> curr -> type = array;
+                    return ( is_valid( psr -> stk, ar_i ) ) ? parse_collection( psr ) : clean();
 
-        case '"':   return parse_string();
+        case '"':   return ( is_valid( psr -> stk, str ) ) ? parse_string( psr ) : clean();
 
-        case ',':   curr -> type = comma;
-                    return parse();
+        case ',':   psr -> curr -> type = comma;
+                    return ( is_valid( psr -> stk, com_i ) ) ? parse( psr ) : clean();
 
         default:    if ( isdigit(c) || c == '-' ) {
-                        return parse_number( c );
+                        return ( is_valid( psr -> stk, v ) ) ? parse_number( psr, c ) : clean();
                     }
-                    return parse_phrase( c );
+                    return ( is_valid( psr -> stk, v ) ) ? parse_phrase( psr, c ) : clean();
     }
 }
 
 value* parse_json( FILE* fp ) {
+
     value head;
-    curr = &head;
-    json = fp;
-    parse();
+    parser psr;
+
+    psr.curr = &head;
+    psr.json = fp;
+    psr.stk = create_stack( 256 );
+
+    parse( &psr );
+    dispose_stack( psr.stk );
+
     return head.next;
 }
 

@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "json_validator.h"
-#include <ctype.h>
 
 short mv_p( int mv, valid_state state, stack_v* stk ) {
     stk -> s_ptr += mv;
