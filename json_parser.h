@@ -27,6 +27,7 @@ typedef struct parser {
     FILE* json;
     value* curr;
     stack_v* stk;
+    short cont;
 
 } parser;
 

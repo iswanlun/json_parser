@@ -14,6 +14,7 @@ short mv( int mv, valid_state state, stack_v* stk ) {
 }
 
 short err( int mv, valid_state state, stack_v* stk ) {
+    stk -> s_ptr = 0;
     return 0;
 }
 
@@ -61,12 +62,10 @@ short is_valid( stack_v* stk, input i ) {
         stk -> s_size *= 2;
         stk -> stack = realloc( stk -> stack, stk -> s_size );
     }
-
+    
     int m = fsm[stk -> stack[stk -> s_ptr]][(short)i].movement;
     valid_state s = fsm[(short)stk -> stack[stk -> s_ptr]][(short)i].next_state;
     short r = stk -> stack[stk -> s_ptr];
-
-    printf("R : %d C : %d\n", r, i );
 
     return fsm[r][i].action(m, s, stk);
 }

@@ -3,13 +3,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <limits.h>
 
 int parse( parser* psr );
 int parse_char( parser* psr, char c );
 
 void fold( parser* psr, value* ptr ) {
 
-    if ( ptr -> set_size ) {
+    if ( psr -> cont && ptr -> set_size ) {
         ptr -> set = malloc( ptr -> set_size * sizeof(value*) );
         value* prev = ptr, *tmp = ptr -> next;
 
@@ -29,7 +30,14 @@ void fold( parser* psr, value* ptr ) {
             }
         }
         tmp -> next = NULL;
+    } else if ( !psr -> cont ) {
+        if ( ptr -> next != NULL ) {
+            ptr -> set_size = 0;
+            dispose( ptr -> next );
+            ptr -> next = NULL;
+        }
     }
+
     psr -> curr = ptr;
 }
 
@@ -107,8 +115,11 @@ int parse_phrase( parser* psr, char c ) {
     return 1 + parse_char( psr, c );
 }
 
-int clean() {
+int clean( parser* psr ) {
     printf("Clean triggered event.\n");
+
+    psr -> cont = 0;
+
     return 0;
 }
 
@@ -121,14 +132,11 @@ int parse_char( parser* psr, char c ) {
 
     while ( isspace(c) ) { c = (char) fgetc( psr -> json ); }
 
-    printf(" C : %c ", c);
-
     switch ( c ) {
-        case ':' :  return ( is_valid( psr -> stk, col ) ) ? parse( psr ) - 1 : clean();
-
-        case '}' :  return ( is_valid( psr -> stk, ob_e ) ) ? 0 : clean();
-        case ']' :  return ( is_valid( psr -> stk, ar_e ) ) ? 0 : clean();
-        case EOF :  return ( is_valid( psr -> stk, end ) ) ? 0 : clean(); 
+        case ':' :  return ( is_valid( psr -> stk, col ) ) ? parse( psr ) - 1 : clean( psr );
+        case '}' :  return ( is_valid( psr -> stk, ob_e ) ) ? 0 : clean( psr );
+        case ']' :  return ( is_valid( psr -> stk, ar_e ) ) ? 0 : clean( psr );
+        case EOF :  return ( is_valid( psr -> stk, end ) ) ? 0 : clean( psr ); 
     }
 
     psr -> curr -> next = (value*) malloc(sizeof(value));
@@ -136,20 +144,20 @@ int parse_char( parser* psr, char c ) {
 
     switch ( c ) {
         case '{':   psr -> curr -> type = object;
-                    return ( is_valid( psr -> stk, ob_i ) ) ? parse_collection( psr ) : clean();
+                    return ( is_valid( psr -> stk, ob_i ) ) ? parse_collection( psr ) : clean( psr );
         
         case '[':   psr -> curr -> type = array;
-                    return ( is_valid( psr -> stk, ar_i ) ) ? parse_collection( psr ) : clean();
+                    return ( is_valid( psr -> stk, ar_i ) ) ? parse_collection( psr ) : clean( psr );
 
-        case '"':   return ( is_valid( psr -> stk, str ) ) ? parse_string( psr ) : clean();
+        case '"':   return ( is_valid( psr -> stk, str ) ) ? parse_string( psr ) : clean( psr );
 
         case ',':   psr -> curr -> type = comma;
-                    return ( is_valid( psr -> stk, com_i ) ) ? parse( psr ) : clean();
+                    return ( is_valid( psr -> stk, com_i ) ) ? parse( psr ) : clean( psr );
 
         default:    if ( isdigit(c) || c == '-' ) {
-                        return ( is_valid( psr -> stk, v ) ) ? parse_number( psr, c ) : clean();
+                        return ( is_valid( psr -> stk, v ) ) ? parse_number( psr, c ) : clean( psr );
                     }
-                    return ( is_valid( psr -> stk, v ) ) ? parse_phrase( psr, c ) : clean();
+                    return ( is_valid( psr -> stk, v ) ) ? parse_phrase( psr, c ) : clean( psr );
     }
 }
 
@@ -161,6 +169,7 @@ value* parse_json( FILE* fp ) {
     psr.curr = &head;
     psr.json = fp;
     psr.stk = create_stack( 256 );
+    psr.cont = 1;
 
     parse( &psr );
     dispose_stack( psr.stk );
@@ -172,18 +181,22 @@ void dispose( value* ptr ) {
 
     if ( ptr -> value ) {
         free ( ptr -> value ); 
+        ptr -> value = NULL;
     }
 
-    if ( ptr -> set_size ) {
+    if ( ptr -> set_size > 0 ) {
 
         for ( int i = 0; i < ptr -> set_size; ++i ) {
 
             dispose( ptr -> set[i] );
+            ptr -> set[i] = NULL;
         }
         free( ptr -> set );
-
-    } else if ( ptr -> next ) {
+        ptr -> set = NULL;
+    } 
+    if ( ptr -> next ) {
         dispose( ptr -> next );
+        ptr -> next = NULL;
     }
 
     free( ptr );
