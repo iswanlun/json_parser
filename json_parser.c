@@ -33,7 +33,9 @@ void fold( parser* psr, value* ptr ) {
 
     } else if ( !psr -> cont ) { 
         ptr -> set_size = 0;
-        dispose( ptr -> next );
+        if ( ptr -> next ) {
+            dispose( ptr -> next );
+        }
         ptr -> next = NULL;
     }
     psr -> curr = ptr;
@@ -120,8 +122,6 @@ int parse_colon( parser* psr ) {
 }
 
 int clean( parser* psr ) {
-
-    printf("Clean triggered event.\n");
     psr -> cont = 0;
     return 0;
 }

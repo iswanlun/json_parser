@@ -54,7 +54,7 @@ void print_tree( value* ptr, int standoff, int depth ) {
     print_value( ptr, standoff );
 
     if ( ptr -> type == string_t && ptr -> set_size == -1 ) {
-        printf(" -> ");
+        printf("  ->  ");
         print_tree( ptr ->next, 0, d+1 );
 
     } else if ( ptr -> set_size ) {
