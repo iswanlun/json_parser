@@ -3,7 +3,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <limits.h>
 
 int parse( parser* psr );
 int parse_char( parser* psr, char c );
@@ -11,10 +10,12 @@ int parse_char( parser* psr, char c );
 void fold( parser* psr, value* ptr ) {
 
     if ( psr -> cont && ptr -> set_size ) {
-        ptr -> set = malloc( ptr -> set_size * sizeof(value*) );
+        ptr -> set = calloc( ptr -> set_size, sizeof(value*) );
         value* prev = ptr, *tmp = ptr -> next;
 
         for ( int i = 0; i < ptr -> set_size; ++i ) {
+
+            prev -> next = NULL;
             ptr -> set[i] = tmp;
             
             while ( tmp != psr -> curr ) {
@@ -24,20 +25,17 @@ void fold( parser* psr, value* ptr ) {
                 if ( tmp -> type == comma ) {
                     tmp = tmp -> next;
                     free( prev -> next );
-                    prev -> next = NULL;
                     break;
                 }
             }
         }
         tmp -> next = NULL;
-    } else if ( !psr -> cont ) {
-        if ( ptr -> next != NULL ) {
-            ptr -> set_size = 0;
-            dispose( ptr -> next );
-            ptr -> next = NULL;
-        }
-    }
 
+    } else if ( !psr -> cont ) { 
+        ptr -> set_size = 0;
+        dispose( ptr -> next );
+        ptr -> next = NULL;
+    }
     psr -> curr = ptr;
 }
 
@@ -55,8 +53,8 @@ int parse_string( parser* psr ) {
     escape:
     while ( (c = (char) fgetc( psr -> json )) != '"' && c != EOF ) {
         if ( len + 1 >= size ) {
-            size = (size * 2) + 1;
-            str = realloc(str, sizeof(char) * size);
+            size = (size * 2) + 2;
+            str = realloc( str, size * sizeof(char) );
         }
         str[len++] = c;
     }
@@ -75,7 +73,7 @@ int parse_string( parser* psr ) {
 
 int parse_number( parser* psr, char c ) {
     psr -> curr -> type = number;
-    psr -> curr -> value = (double*) malloc(sizeof(double));
+    psr -> curr -> value = (double*) calloc(1, sizeof(double));
     double n = 0.0, p = 1.0;
     if ( c == '-' ) { c = (char) fgetc( psr -> json ); p = -1.0; }
 
@@ -115,15 +113,20 @@ int parse_phrase( parser* psr, char c ) {
     return 1 + parse_char( psr, c );
 }
 
+int parse_colon( parser* psr ) {
+
+    psr -> curr -> set_size = -1;
+    return parse( psr ) - 1;
+}
+
 int clean( parser* psr ) {
+
     printf("Clean triggered event.\n");
-
     psr -> cont = 0;
-
     return 0;
 }
 
-int parse ( parser* psr ) {
+int parse( parser* psr ) {
     char c = (char) fgetc( psr -> json );
     return parse_char(psr, c);
 }
@@ -133,13 +136,13 @@ int parse_char( parser* psr, char c ) {
     while ( isspace(c) ) { c = (char) fgetc( psr -> json ); }
 
     switch ( c ) {
-        case ':' :  return ( is_valid( psr -> stk, col ) ) ? parse( psr ) - 1 : clean( psr );
+        case ':' :  return ( is_valid( psr -> stk, col ) ) ? parse_colon( psr ) : clean( psr );
         case '}' :  return ( is_valid( psr -> stk, ob_e ) ) ? 0 : clean( psr );
         case ']' :  return ( is_valid( psr -> stk, ar_e ) ) ? 0 : clean( psr );
-        case EOF :  return ( is_valid( psr -> stk, end ) ) ? 0 : clean( psr ); 
+        case EOF :  return ( is_valid( psr -> stk, end ) ) ? 0 : clean( psr );
     }
 
-    psr -> curr -> next = (value*) malloc(sizeof(value));
+    psr -> curr -> next = (value*) calloc(1, sizeof(value));
     psr -> curr = psr -> curr -> next;   
 
     switch ( c ) {
@@ -174,12 +177,16 @@ value* parse_json( FILE* fp ) {
     parse( &psr );
     dispose_stack( psr.stk );
 
-    return head.next;
+    if ( psr.cont ) {
+        return head.next;
+    }
+    dispose( head.next );
+    return NULL;
 }
 
 void dispose( value* ptr ) {
-
-    if ( ptr -> value ) {
+    
+    if ( ptr -> type < object ) {
         free ( ptr -> value ); 
         ptr -> value = NULL;
     }
@@ -187,18 +194,19 @@ void dispose( value* ptr ) {
     if ( ptr -> set_size > 0 ) {
 
         for ( int i = 0; i < ptr -> set_size; ++i ) {
-
             dispose( ptr -> set[i] );
             ptr -> set[i] = NULL;
         }
         free( ptr -> set );
         ptr -> set = NULL;
-    } 
+
+    }
     if ( ptr -> next ) {
-        dispose( ptr -> next );
+
+        dispose ( ptr -> next );
         ptr -> next = NULL;
     }
-
+    
     free( ptr );
 }
 

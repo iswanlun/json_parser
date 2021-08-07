@@ -47,24 +47,24 @@ void print_value( value* head, int depth ) {
     }
 }
 
-void print_tree( value* ptr, int depth ) {
+void print_tree( value* ptr, int standoff, int depth ) {
 
     int d = depth;
 
-    print_value( ptr, d );
+    print_value( ptr, standoff );
 
-    if ( ptr -> set_size ) {
+    if ( ptr -> type == string_t && ptr -> set_size == -1 ) {
+        printf(" -> ");
+        print_tree( ptr ->next, 0, d+1 );
+
+    } else if ( ptr -> set_size ) {
 
         printf("\n");
 
         for ( int i = 0; i < ptr -> set_size; ++i ) {
-            print_tree( ptr -> set[i], d+1 );
+            print_tree( ptr -> set[i], d+1, d+1 );
             printf("\n");        
         }
-
-    } else if ( ptr -> next ) {
-        printf(" -> ");
-        print_tree( ptr -> next, d+1 );
     }
 }
 
@@ -88,8 +88,13 @@ int main( int argc, char** argv ) {
             (end.tv_sec  - begin.tv_sec)
         );
 
-        print_tree(head, 0);
-        dispose(head);
+        if (head) {
+            print_tree(head, 0, 0);
+            dispose(head);
+        } else {
+            printf("Json syntax Error\n");
+        }
+        
         fclose(fp);
 
     } else {
