@@ -44,7 +44,7 @@ void fold( parser* psr, value* ptr ) {
 int parse_collection( parser* psr ) {
     value* tmp = psr -> curr;
     tmp -> set_size = parse( psr );
-    fold(psr, tmp);
+    fold( psr, tmp );
     return 1 + parse( psr );
 }
 
@@ -68,33 +68,44 @@ int parse_string( parser* psr ) {
         str[len] = '\0';
     }
 
-    psr -> curr -> type = string_t;
+    psr -> curr -> type = string;
     psr -> curr -> value = str;
+    psr -> curr -> v_len = len;
     return 1 + parse( psr );
 }
 
+char build_number( parser* psr, char c, int* size ) {
+
+    while ( isdigit(c) ) {
+        if ( psr -> curr -> v_len + 2 >= *size ) {
+            *size = (*size + 1) * 2;
+            psr -> curr -> value = realloc( psr -> curr -> value, (*size) * sizeof(char) );
+        }
+        ((char*)psr -> curr -> value)[psr -> curr -> v_len++] = c;
+        c = (char) fgetc( psr -> json );
+    }
+    return c;
+}
+
 int parse_number( parser* psr, char c ) {
+
     psr -> curr -> type = number;
-    psr -> curr -> value = (double*) calloc(1, sizeof(double));
-    double n = 0.0, p = 1.0;
-    if ( c == '-' ) { c = (char) fgetc( psr -> json ); p = -1.0; }
+    psr -> curr -> v_len = 0;
+    int size = 3;
 
-    while ( isdigit(c) ) {
+    psr -> curr -> value = (char*) malloc( size * sizeof(char) );
+    ((char*)psr -> curr -> value)[psr -> curr -> v_len++] = c;
 
-        n = (n * 10.0) + ( (int) (c - '0') );
-        c = (char) fgetc( psr -> json );
-    }
-    
-    if ( c == '.' ) { c = (char) fgetc( psr -> json ); }
+    c = (char) fgetc( psr -> json );
+    c = build_number( psr, c, &size );
 
-    while ( isdigit(c) ) {
-
-        n = (n * 10.0) + ( (int) (c - '0') );
-        p *= 10.0;
-        c = (char) fgetc( psr -> json );
+    if ( c == '.' ) { 
+        ((char*)psr -> curr -> value)[psr -> curr -> v_len++] = c; 
+        c = (char) fgetc( psr -> json ); 
     }
 
-    *((double*)psr -> curr -> value) = n / p;
+    c = build_number( psr, c, &size );
+    ((char*)psr -> curr -> value)[psr -> curr -> v_len] = '\0';
     return 1 + parse_char( psr, c );
 }
 
@@ -212,7 +223,7 @@ void dispose( value* ptr ) {
 
 value* object_get( value* obj, char* key ) {
 
-    if ( obj -> set_size ) {
+    if ( obj -> set_size && obj -> type == object ) {
         for ( int i = 0; i < obj -> set_size; ++i ) {
             if ( ! strcmp( obj -> set[i] -> value, key ) ) {
                 return obj -> set[i] -> next;
@@ -224,8 +235,124 @@ value* object_get( value* obj, char* key ) {
 
 value* array_get( value* arr, int index ) {
 
-    if ( index >= 0 && index < arr -> set_size ) {
+    if ( index >= 0 && index < arr -> set_size && arr -> type == array ) {
         return arr -> set[index];
     }
     return NULL;
+}
+
+int resize_and_append( string_buffer* s_buffer, int len_append, const char* format, void* to_append ) {
+
+    short alloc = 0;
+
+    while ( s_buffer -> size <= s_buffer ->offset + len_append ) {
+        s_buffer -> size = (s_buffer -> size + 1) * 2;
+        alloc = 1;
+    }
+    if ( alloc ) {
+        s_buffer -> buffer = realloc( s_buffer -> buffer, s_buffer ->size );
+    }
+    if ( s_buffer -> buffer ) {
+
+        s_buffer -> offset += snprintf( &(s_buffer -> buffer[s_buffer -> offset]), (s_buffer -> size - s_buffer ->offset), format, to_append );
+        return 0;
+    }
+    return 1;
+}
+
+int add_value( value* ptr, string_buffer* s_buffer ) {
+
+    switch ( ptr -> type ) {
+        case string : resize_and_append( s_buffer, 1, "%s", "\"" );
+        case number : return resize_and_append( s_buffer, ptr -> v_len, "%s", ptr -> value );
+    
+        case object : return resize_and_append( s_buffer, 1, "%s", "{" );
+    
+        case array : return resize_and_append( s_buffer, 1, "%s", "[" );
+    
+        case true : return resize_and_append( s_buffer, 4, "%s", "true" );
+    
+        case false : return resize_and_append( s_buffer, 5, "%s", "false" );
+    
+        case null : return resize_and_append( s_buffer, 4, "%s", "null" );
+        
+        default: return 1;
+    }
+}
+
+int to_string( value* ptr, string_buffer* s_buffer ) {
+
+    int v = add_value( ptr, s_buffer );
+
+    if ( ptr -> type == string ) {
+        v &= resize_and_append( s_buffer, 1, "%s", "\"" );
+    }
+
+    if ( ptr -> type == string && ptr -> set_size == -1 ) {
+
+        v &= resize_and_append( s_buffer, 1, "%s", ":" );
+        v &= to_string( ptr -> next, s_buffer );
+
+    } else if ( ptr -> set_size ) {
+
+        int i = 0;
+        for ( ; i < ptr -> set_size-1; ++i ) {
+            v &= to_string( ptr -> set[i], s_buffer );
+            v &= resize_and_append( s_buffer, 1, "%s", "," );
+        }
+        v &= to_string( ptr -> set[i], s_buffer );
+    }
+
+    if ( ptr -> type == object ) {
+        v &= resize_and_append( s_buffer, 1, "%s", "}" );
+    }
+    if ( ptr -> type == array ) {
+        v &= resize_and_append( s_buffer, 1, "%s", "]" );
+    }
+
+    return v;
+}
+
+int number_as_int( value* ptr ) {
+
+    if ( ptr -> type != number ) { return 0; }
+
+    int i = 0, n = 0;
+    char c = ((char*)ptr -> value)[i++];
+    char neg = c;
+
+    while ( isdigit(c) ) {
+
+        n = (n * 10.0) + ( (int) (c - '0') );
+        c = ((char*)ptr -> value)[i++];
+    }
+
+    return  ( neg == '-' ) ? (-1 * n) : n;
+}
+
+float number_as_float( value* ptr ) {
+
+    if ( ptr -> type != number ) { return 0.0; }
+
+    int i = 0;
+    float n = 0.0, p = 1.0;
+    char c = ((char*)ptr -> value)[i++];
+    if ( c == '-' ) { c = ((char*)ptr -> value)[i++]; p = -1.0; }
+
+    while ( isdigit(c) ) {
+
+        n = (n * 10.0) + ( (int) (c - '0') );
+        c = ((char*)ptr -> value)[i++];
+    }
+    
+    if ( c == '.' ) { c = ((char*)ptr -> value)[i++]; }
+
+    while ( isdigit(c) ) {
+
+        n = (n * 10.0) + ( (int) (c - '0') );
+        p *= 10.0;
+        c = ((char*)ptr -> value)[i++];
+    }
+
+    return (float) n / p;
 }
