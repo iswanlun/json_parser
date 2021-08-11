@@ -62,7 +62,6 @@ short is_valid( stack_v* stk, input i ) {
         stk -> s_size *= 2;
         stk -> stack = realloc( stk -> stack, stk -> s_size );
     }
-    
     int m = fsm[stk -> stack[stk -> s_ptr]][(short)i].movement;
     valid_state s = fsm[(short)stk -> stack[stk -> s_ptr]][(short)i].next_state;
     short r = stk -> stack[stk -> s_ptr];
@@ -77,12 +76,10 @@ stack_v* create_stack( int size ) {
     stk -> s_size = size;
     stk -> s_ptr = 0;
     stk -> stack[0] = b;
-
     return stk;
 }
 
 void dispose_stack( stack_v* stk ) {
-
     free( stk -> stack );
     free( stk );
 }

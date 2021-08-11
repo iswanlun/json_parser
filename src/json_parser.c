@@ -212,7 +212,7 @@ void dispose( value* ptr ) {
     free( ptr );
 }
 
-value* object_get( value* obj, char* key ) {
+value* object_get( value* obj, const char* key ) {
 
     if ( obj -> set_size && obj -> type == object ) {
         for ( int i = 0; i < obj -> set_size; ++i ) {
@@ -318,17 +318,16 @@ int number_as_int( value* ptr ) {
 
     if ( ptr -> type != number ) { return 0; }
 
-    int i = 0, n = 0;
+    int i = 0, n = 0, neg = 1;
     char c = ((char*)ptr -> value)[i++];
-    char neg = c;
+    if ( c == '-' ) { neg = -1; c = ((char*)ptr -> value)[i++]; }
 
     while ( isdigit(c) ) {
 
         n = (n * 10.0) + ( (int) (c - '0') );
         c = ((char*)ptr -> value)[i++];
     }
-
-    return  ( neg == '-' ) ? (-1 * n) : n;
+    return n * neg;
 }
 
 float number_as_float( value* ptr ) {
