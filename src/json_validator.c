@@ -43,7 +43,7 @@ short ef( int mv, valid_state state, stack_v* stk ) {
     return 1;
 }
 
-const fsm_mode fsm[10][9] = {
+static const fsm_mode fsm[10][9] = {
     { { -1, cur, &mv }, { 1, ar_v, &mv_p }, { 0, er, &err },    { 0, er, &err },    { 1, ar_v, &mv_p },  { 0, er, &err },  { 1, ar_v, &arr_p },  { 1, ar_v, &obj_p },  { 0, er, &err } },
     { { -2, cur, &mv }, { 0, er, &err },    { 1, ar_c, &mv_p }, { 0, er, &err },    { 0, er, &err },     { 0, er, &err },  { 0, er, &err },      { 0, er, &err },      { 0, er, &err } },
     { { 0, er, &err },  { -1, cur, &mv },   { 0, er, &err },    { 0, er, &err },    { -1, cur, &mv },    { 0, er, &err },  { -1, ar_v, &arr_p }, { -1, ar_v, &obj_p }, { 0, er, &err } },

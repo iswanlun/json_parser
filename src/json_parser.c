@@ -73,6 +73,11 @@ int parse_string( parser* psr ) {
     return 1 + parse( psr );
 }
 
+int clean( parser* psr ) {
+    psr -> cont = 0;
+    return 0;
+}
+
 char build_number( parser* psr, char c, int* size ) {
 
     while ( isdigit(c) ) {
@@ -105,6 +110,7 @@ int parse_number( parser* psr, char c ) {
 
     c = build_number( psr, c, &size );
     ((char*)psr -> curr -> value)[psr -> curr -> v_len] = '\0';
+    if ( psr -> curr -> v_len = 1 && ((char*)psr -> curr -> value)[0] == '-' ) { clean( psr ); }
     return 1 + parse_char( psr, c );
 }
 
@@ -126,14 +132,8 @@ int parse_phrase( parser* psr, char c ) {
 }
 
 int parse_colon( parser* psr ) {
-
     psr -> curr -> set_size = -1;
     return parse( psr ) - 1;
-}
-
-int clean( parser* psr ) {
-    psr -> cont = 0;
-    return 0;
 }
 
 int parse( parser* psr ) {
