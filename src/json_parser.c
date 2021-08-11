@@ -49,28 +49,27 @@ int parse_collection( parser* psr ) {
 }
 
 int parse_string( parser* psr ) {
-    int size = 0, len = 0;
-    char* str = NULL, c;
+
+    psr -> curr -> type = string;
+    psr -> curr -> v_len = 0;
+    int size = 0;
+    char c;
 
     escape:
     while ( (c = (char) fgetc( psr -> json )) != '"' && c != EOF ) {
-        if ( len + 1 >= size ) {
+        if ( psr -> curr -> v_len + 1 >= size ) {
             size = (size * 2) + 2;
-            str = realloc( str, size * sizeof(char) );
+            psr -> curr -> value = realloc( psr -> curr -> value, size * sizeof(char) );
         }
-        str[len++] = c;
+        ((char*)psr -> curr -> value)[psr -> curr -> v_len++] = c;
     }
-    if ( len ) {
-        if ( str[len-1] == '\\' && c != EOF ) {
-            str[len++] = c;
+    if ( psr -> curr -> v_len ) {
+        if ( ((char*)psr -> curr -> value)[psr -> curr -> v_len-1] == '\\' && c != EOF ) {
+            ((char*)psr -> curr -> value)[psr -> curr -> v_len++] = c;
             goto escape;
         }
-        str[len] = '\0';
+        ((char*)psr -> curr -> value)[psr -> curr -> v_len] = '\0';
     }
-
-    psr -> curr -> type = string;
-    psr -> curr -> value = str;
-    psr -> curr -> v_len = len;
     return 1 + parse( psr );
 }
 
@@ -178,12 +177,7 @@ int parse_char( parser* psr, char c ) {
 value* parse_json( FILE* fp ) {
 
     value head;
-    parser psr;
-
-    psr.curr = &head;
-    psr.json = fp;
-    psr.stk = create_stack( 256 );
-    psr.cont = 1;
+    parser psr = { fp, &head, create_stack( 256 ), 1 };
 
     parse( &psr );
     dispose_stack( psr.stk );
@@ -201,7 +195,6 @@ void dispose( value* ptr ) {
         free ( ptr -> value ); 
         ptr -> value = NULL;
     }
-
     if ( ptr -> set_size > 0 ) {
 
         for ( int i = 0; i < ptr -> set_size; ++i ) {
@@ -210,14 +203,12 @@ void dispose( value* ptr ) {
         }
         free( ptr -> set );
         ptr -> set = NULL;
-
     }
     if ( ptr -> next ) {
 
         dispose ( ptr -> next );
         ptr -> next = NULL;
     }
-    
     free( ptr );
 }
 
@@ -363,6 +354,5 @@ float number_as_float( value* ptr ) {
         p *= 10.0;
         c = ((char*)ptr -> value)[i++];
     }
-
     return (float) n / p;
 }
