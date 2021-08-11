@@ -104,20 +104,20 @@ void test_to_string( FILE* fp ) {
         (end.tv_sec  - begin.tv_sec)
     );
 
-    if (head) {
+    if ( head ) {
 
-        char* str = (char*) calloc(1, sizeof(char));
-        string_buffer b = { str, 1, 0 };
+        char* str = to_string(head);
+        
+        if ( str ) {
 
-        if ( !to_string(head, &b) ) {
-
-            printf("%s\n", b.buffer);
+            printf("%s\n", str);
 
         } else {
+
             printf("Could not create string.\n");
         }
 
-        free(b.buffer);
+        free(str);
         dispose(head);
 
     } else {
@@ -133,8 +133,8 @@ int main( int argc, char** argv ) {
 
     if (fp) {
 
-        test_parser( fp );
-        //test_to_string( fp );
+        //test_parser( fp );
+        test_to_string( fp );
         fclose(fp);
 
     } else {

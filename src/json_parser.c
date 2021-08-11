@@ -93,7 +93,7 @@ int parse_number( parser* psr, char c ) {
     psr -> curr -> v_len = 0;
     int size = 3;
 
-    psr -> curr -> value = (char*) malloc( size * sizeof(char) );
+    psr -> curr -> value = (char*) calloc( size, sizeof(char) );
     ((char*)psr -> curr -> value)[psr -> curr -> v_len++] = c;
 
     c = (char) fgetc( psr -> json );
@@ -280,27 +280,27 @@ int add_value( value* ptr, string_buffer* s_buffer ) {
     }
 }
 
-int to_string( value* ptr, string_buffer* s_buffer ) {
+int build_string( value* ptr, string_buffer* s_buffer ) {
 
     int v = add_value( ptr, s_buffer );
 
     if ( ptr -> type == string ) {
+
         v &= resize_and_append( s_buffer, 1, "%s", "\"" );
-    }
 
-    if ( ptr -> type == string && ptr -> set_size == -1 ) {
-
-        v &= resize_and_append( s_buffer, 1, "%s", ":" );
-        v &= to_string( ptr -> next, s_buffer );
+        if ( ptr -> set_size == -1 ) {
+            v &= resize_and_append( s_buffer, 1, "%s", ":" );
+            v &= build_string( ptr -> next, s_buffer );
+        }
 
     } else if ( ptr -> set_size ) {
 
         int i = 0;
         for ( ; i < ptr -> set_size-1; ++i ) {
-            v &= to_string( ptr -> set[i], s_buffer );
+            v &= build_string( ptr -> set[i], s_buffer );
             v &= resize_and_append( s_buffer, 1, "%s", "," );
         }
-        v &= to_string( ptr -> set[i], s_buffer );
+        v &= build_string( ptr -> set[i], s_buffer );
     }
 
     if ( ptr -> type == object ) {
@@ -311,6 +311,16 @@ int to_string( value* ptr, string_buffer* s_buffer ) {
     }
 
     return v;
+}
+
+char* to_string( value* ptr ) {
+
+    char* str = calloc(1, sizeof(char));
+    string_buffer b = { str, 1, 0 };
+    if ( !build_string( ptr, &b ) ) {
+        return b.buffer;
+    }
+    return NULL;
 }
 
 int number_as_int( value* ptr ) {

@@ -50,6 +50,6 @@ int number_as_int( value* ptr );
 
 float number_as_float( value* ptr );
 
-int to_string( value* ptr, string_buffer* s_buffer );
+char* to_string( value* ptr );
 
 #endif
