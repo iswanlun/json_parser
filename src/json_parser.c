@@ -315,11 +315,11 @@ int build_string( value* ptr, string_buffer* s_buffer ) {
 
 char* to_string( value* ptr ) {
 
-    char* str = calloc(1, sizeof(char));
-    string_buffer b = { str, 1, 0 };
+    string_buffer b = { NULL, 0, 0 };
     if ( !build_string( ptr, &b ) ) {
         return b.buffer;
     }
+    free(b.buffer);
     return NULL;
 }
 
