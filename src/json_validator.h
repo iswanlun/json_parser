@@ -9,20 +9,16 @@ typedef enum input {
     ar_e, v, com_i, ob_e, str, col, ar_i, ob_i, end
 } input;
 
-typedef struct {
-
+typedef struct stack_v {
     valid_state* stack;
     int s_ptr;
     int s_size;
-
 } stack_v;
 
 typedef struct {
-
     int movement;
     valid_state next_state;
     short (*action)(int, valid_state, stack_v*);
-
 } fsm_mode;
 
 short is_valid( stack_v* stk, input i );

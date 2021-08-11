@@ -11,25 +11,19 @@ typedef enum value_type {
 } value_type;
 
 typedef struct value {
-
     value_type type;
     void* value;
     int v_len;
-
     int set_size;   
     struct value** set;
-
     struct value* next;
-
 } value;
 
 typedef struct parser {
-
     FILE* json;
     value* curr;
     stack_v* stk;
     short cont;
-
 } parser;
 
 typedef struct string_buffer {

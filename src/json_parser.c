@@ -110,7 +110,7 @@ int parse_number( parser* psr, char c ) {
 
     c = build_number( psr, c, &size );
     ((char*)psr -> curr -> value)[psr -> curr -> v_len] = '\0';
-    if ( psr -> curr -> v_len = 1 && ((char*)psr -> curr -> value)[0] == '-' ) { clean( psr ); }
+    if ( psr -> curr -> v_len == 1 && ((char*)psr -> curr -> value)[0] == '-' ) { clean( psr ); }
     return 1 + parse_char( psr, c );
 }
 
